@@ -1,0 +1,41 @@
+name: Generate github pages
+
+on:
+  push:
+    branches:
+    - main
+  schedule:
+    - cron: '0-5 * * * *'
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: quay.io/fedora/fedora:36
+    steps:
+    - name: Install dependencies
+      run: |
+        dnf install -y \
+        git \
+        python3-copr \
+        python3-hawkey \
+        python3-koji
+
+    - name: Fetch sources
+      uses: actions/checkout@v3
+
+    - name: Generate HTML
+      run: |
+        # Work around https://github.com/actions/checkout/issues/760
+        git config --global --add safe.directory "$GITHUB_WORKSPACE"
+        git config --global user.email "noreply@github.com"
+        git config --global user.name "Github Pages"
+        cp update.py update.py.main
+        git fetch origin gh-pages
+        git checkout gh-pages
+        cp update.py.main update.py
+        python3 update.py
+        git add *.html *.py
+        git commit -a -m "Update pages"
+        git push origin gh-pages:gh-pages
